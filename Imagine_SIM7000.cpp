@@ -12,18 +12,26 @@ bool Imagine_SIM7000::checkAT()
 {
 	return tryCommand("AT\r\n","OK");
 }
-bool Imagine_SIM7000::checkSIM()
+
+bool Imagine_SIM7000::checkSIM(const char* pin = "")
 {
+	if(strlen(pin) > 0)
+	{
+		sendCommand("AT+CPIN=");
+		sendCommand(pin);
+		return checkSendCommand("\r\n", "READY");
+	}
+
 	return tryCommand("AT+CPIN?\r\n","READY");
 }
 bool Imagine_SIM7000::prepareNetwork()
 {
-	if(!tryCommand("AT+CNMP=51\r\n","OK")) return false; 		delay(100);
-	if(!tryCommand("AT+CMNB=3\r\n","OK")) return false; 		delay(100);
-	if(!tryCommand("AT+CGATT=1\r\n","OK")) return false; 		delay(100);
-	if(!tryCommand("AT+SAPBR=3,1,\"APN\",\"plus\"\r\n","OK")) return false; delay(100);
-	if(!tryCommand("AT+SAPBR=1,1\r\n","OK")) return false; delay(100);
-	if(!tryCommand("AT+SAPBR=2,1\r\n","OK")) return false; delay(100);
+	if(!tryCommand("AT+CNMP=51\r\n","OK")) return false; 		delay(500);
+	if(!tryCommand("AT+CMNB=3\r\n","OK")) return false; 		delay(500);
+	if(!tryCommand("AT+CGATT=1\r\n","OK")) return false;   delay(500);
+	if(!tryCommand("AT+SAPBR=3,1,\"APN\",\"plus\"\r\n","OK")) return false; delay(500);
+	if(!tryCommand("AT+SAPBR=1,1\r\n","OK")) return false; delay(500);
+	if(!tryCommand("AT+SAPBR=2,1\r\n","OK")) return false; delay(500);
 	//if(!tryCommand("AT+CSTT=\"plus\"\r\n","OK")) return false; 	delay(100);
 	//if(!tryCommand("AT+CIICR\r\n","OK")) return false; 			delay(100);
 	//if(checkSendCommand("AT+CIFSR\r\n","ERROR")) return false; 	delay(100);
@@ -33,6 +41,29 @@ bool Imagine_SIM7000::prepareNetwork()
 bool Imagine_SIM7000::turnOFF()
 {
 	return checkSendCommand("AT+CPOWD=1\r\n","NORMAL POWER DOWN");
+}
+bool Imagine_SIM7000::prepareGPS()
+{
+	return tryCommand("AT+CGNSPWR=1\r\n","OK");
+}
+String Imagine_SIM7000::getGNSSinfo()
+{
+	sendCommand("AT+CGNSINF\r\n");
+	cleanBuffer();
+	readBuffer();
+	
+	Serial.print("RECEIVE<-\n{\n");
+	Serial.print(buffer);
+	Serial.print("}\n");
+	
+	char *start = strstr(buffer, ":") + 2; //ommitting : and space
+	String data = String(*start);
+	
+	while(*(++start) != '\r'){
+		data += *start;
+	}
+	
+	return data;
 }
 bool Imagine_SIM7000::turnON(){
 	
@@ -96,12 +127,12 @@ bool Imagine_SIM7000::HTTPconnect(const char* host, bool progmem=false)
 bool Imagine_SIM7000::HTTPpost(String data)
 {
 	sendCommand("AT+HTTPDATA=");
-    send_Command(String(data.length()));
+    sendCommand(String(data.length()));
 	
 	if(!checkSendCommand(",10000\r\n","DOWNLOAD")) return false;
 	
 	delay(100);
-	send_Command(data);
+	sendCommand(data);
 	sendCommand("\r\n");
 	delay(100);
 	
@@ -116,7 +147,7 @@ bool Imagine_SIM7000::HTTPpost(String data)
             return false;
         }
     }
-    if(!checkSendCommand("AT+HTTPACTION=1\r\n","200", 10000, 8000)){
+    if(!checkSendCommand("AT+HTTPACTION=1\r\n","200", 10000, 5000)){
         return false;
     }
 	
@@ -178,7 +209,7 @@ void Imagine_SIM7000::cleanBuffer()
 {
     memset(buffer, 0, sizeof(buffer));
 }
-void Imagine_SIM7000::send_Command(String aaa)
+void Imagine_SIM7000::sendCommand(String aaa)
 {
 	//Serial.printf("SEND->\n{\n%s}\n", cmd.c_str());
 	Serial.print("SENDs->\n{\n");
@@ -188,9 +219,6 @@ void Imagine_SIM7000::send_Command(String aaa)
 }
 void Imagine_SIM7000::sendCommand(const char* cmd)
 {
-	//Serial.printf("SEND->\n{\n%s}\n", cmd);
-	Serial.print("SEND->\n{\n");
-	Serial.print(cmd);
-	Serial.print("}\n");
+	Serial.printf("SEND->\n{\n%s}\n", cmd);
 	SIMSerial->write(cmd);
 }

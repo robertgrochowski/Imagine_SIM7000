@@ -17,7 +17,7 @@ class Imagine_SIM7000 {
 public:
 	void init(Stream &_stream);
 	bool checkAT();
-	bool checkSIM();
+	bool checkSIM(const char* pin = "");
 	bool restart();
 	bool tryCommand(const char* cmd, const char* resp, unsigned int delayTime = 300, int attempts=3);
 	bool checkSendCommand(const char* cmd, const char* resp, unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT);
@@ -25,12 +25,14 @@ public:
 	void cleanBuffer();
 	bool prepareNetwork();
 	void sendCommand(const char* cmd);
-	void send_Command(String cmd);
+	void sendCommand(String cmd);
 	bool turnON();
 	bool turnOFF();
 	bool HTTPpost(String data);
 	bool HTTPconnect(const char* host, bool progmem=false);
 	bool HTTPdisconnect();
+	bool prepareGPS();
+	String getGNSSinfo();
 	
 	
 };
