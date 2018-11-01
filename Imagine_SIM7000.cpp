@@ -2,11 +2,13 @@
 
 static SoftwareSerial* SIMSerial;
 static char buffer[BUFFER_SIZE];
+static int LAST_CMD_TIME;
 
 void Imagine_SIM7000::init(Stream &_stream)
 {
 	SIMSerial = &_stream;
 	SIMSerial->begin(BAUDRATE);
+	LAST_CMD_TIME = -1;
 }
 bool Imagine_SIM7000::checkAT()
 {
@@ -147,7 +149,7 @@ bool Imagine_SIM7000::HTTPpost(String data)
             return false;
         }
     }
-    if(!checkSendCommand("AT+HTTPACTION=1\r\n","200", 10000, 5000)){
+    if(!checkSendCommand("AT+HTTPACTION=1\r\n","200,2\r\n", true, 20000, 10000)){
         return false;
     }
 	
@@ -155,7 +157,6 @@ bool Imagine_SIM7000::HTTPpost(String data)
 	cleanBuffer();
 	readBuffer();
 	Serial.print(buffer);
-    //get_String(data);
 	
 	return true;
 
@@ -165,18 +166,54 @@ bool Imagine_SIM7000::HTTPdisconnect(){
 }
 
 
-bool Imagine_SIM7000::checkSendCommand(const char* cmd, const char* resp, unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT)
+bool Imagine_SIM7000::checkSendCommand(const char* cmd, const char* resp, bool isLastChar = false, unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT)
 {
     cleanBuffer();
     sendCommand(cmd);
-    readBuffer(timeout, lastchartimeout);
+	LAST_CMD_TIME = -1;
 	
-	//Serial.printf("RECEIVE<-\n{\n%s}\n", buffer);
-	Serial.print("RECEIVE<-\n{\n");
+	if(isLastChar) LAST_CMD_TIME = readBufferTill(resp, timeout, lastchartimeout);
+	else readBuffer(timeout, lastchartimeout);
+	
+	if(LAST_CMD_TIME != -1)
+		Serial.printf("Time:{%d}\n", LAST_CMD_TIME);
+	
+	Serial.print(F("RECEIVE<-\n{\n"));
 	Serial.print(buffer);
-	Serial.print("}\n");
+	Serial.print(F("}\n"));
 	
 	return strstr(buffer, resp) != NULL;
+}
+
+//Returns elapsed time in ms
+int Imagine_SIM7000::readBufferTill(const char* lastChar, unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT)
+{
+	int i = 0;
+    unsigned long timerStart = millis();
+    unsigned long prevChar = 0;
+	
+    while(1)
+	{
+        while(SIMSerial->available())
+		{
+            if(i < BUFFER_SIZE) 
+                buffer[i++] = SIMSerial->read();
+			else SIMSerial->read(); //release serial //TODO: add debug warning
+			
+			prevChar = millis();
+        }
+		
+		if(strstr(buffer, lastChar) != NULL)
+			break;
+    
+		if((unsigned long) (millis() - timerStart) > timeout)
+			break;
+		
+		if(((unsigned long) (millis() - prevChar) > lastchartimeout) && (prevChar != 0))
+            break;
+    }
+    SIMSerial->flush();
+    return millis() - timerStart;
 }
 
 int Imagine_SIM7000::readBuffer(unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT)

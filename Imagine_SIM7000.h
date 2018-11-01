@@ -20,7 +20,7 @@ public:
 	bool checkSIM(const char* pin = "");
 	bool restart();
 	bool tryCommand(const char* cmd, const char* resp, unsigned int delayTime = 300, int attempts=3);
-	bool checkSendCommand(const char* cmd, const char* resp, unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT);
+	bool checkSendCommand(const char* cmd, const char* resp, bool isLastChar = false, unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT);
 	int readBuffer(unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT);
 	void cleanBuffer();
 	bool prepareNetwork();
@@ -32,6 +32,7 @@ public:
 	bool HTTPconnect(const char* host, bool progmem=false);
 	bool HTTPdisconnect();
 	bool prepareGPS();
+	int readBufferTill(const char* lastChar, unsigned int timeout = DEFAULT_TIMEOUT, unsigned int lastchartimeout = DEFAULT_LAST_CHAR_TIMEOUT);
 	String getGNSSinfo();
 	
 	
