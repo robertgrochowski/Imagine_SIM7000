@@ -5,7 +5,7 @@ Imagine_SIM7000 module;
 SoftwareSerial mySerial(PIN_RX, PIN_TX);
 
 const unsigned int ID = 0;
-const char URL[] = { "http://imagineapp.azurewebsites.net/api/GPSDataCapture?code=AjMTbNQW7ogutpDmf2qt5vrIW8k48HeuwA02Zswiqbnsg28OABUsOg==" };
+const char URL[] = { "http://imagineapp.azurewebsites.net/api/GPSDataCapture?code=########" };
 const char PIN[] = { "" };
 const bool REBOOT = true;
 
